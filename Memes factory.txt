@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Meme App PRO MAX</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+}
+
+/* BOTÓN MENÚ */
+.menu-btn {
+  font-size: 26px;
+  margin: 15px;
+  cursor: pointer;
+}
+
+/* SIDEBAR */
+.sidebar {
+  position: fixed;
+  left: -240px;
+  top: 0;
+  width: 240px;
+  height: 100%;
+  background: #111;
+  box-shadow: 3px 0 20px rgba(0,0,0,0.4);
+  transition: 0.3s;
+  padding-top: 60px;
+  z-index: 999;
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+/* BOTONES SIDEBAR */
+.sidebar button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 85%;
+  margin: 10px auto;
+  padding: 14px;
+  border: none;
+  background: #1e1e1e;
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.sidebar button:hover {
+  background: #333;
+  transform: scale(1.03);
+}
+
+/* BOTÓN FLOTANTE */
+.close-arrow {
+  position: fixed;
+  top: 20px;
+  left: -50px;
+  background: black;
+  color: white;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: 0.3s;
+  z-index: 1000;
+}
+
+/* OVERLAY */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.3s;
+}
+
+.overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* SECCIONES */
+.section {
+  display: none;
+  padding: 20px;
+  text-align: center;
+}
+
+.section.active {
+  display: block;
+}
+
+/* MEME */
+.meme-container {
+  position: relative;
+  display: inline-block;
+  margin-top: 20px;
+}
+
+img {
+  max-width: 400px;
+  border: 4px solid black;
+  border-radius: 10px;
+}
+
+.text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 2px 2px 5px black;
+  width: 90%;
+}
+
+#topText { top: 10px; }
+#bottomText { bottom: 10px; }
+
+input, button, select {
+  margin: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+/* BOTONES GENERALES */
+button {
+  background: black;
+  color: white;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menuBtn" class="menu-btn" onclick="toggleMenu()">☰</div>
+<div id="overlay" class="overlay" onclick="closeMenu()"></div>
+
+<!-- SIDEBAR -->
+<div id="sidebar" class="sidebar">
+  <button onclick="showSection('create')">🎨 Crear Meme</button>
+  <button onclick="showSection('gallery')">🖼 Mis creaciones</button>
+  <button onclick="logout()">🚪 Cerrar sesión</button>
+</div>
+
+<!-- BOTÓN FLOTANTE -->
+<div id="arrow" class="close-arrow" onclick="toggleMenu()">➡</div>
+
+<!-- LOGIN -->
+<div id="login" class="section">
+  <h2>Iniciar sesión</h2>
+  <input type="text" id="username" placeholder="Tu nombre"><br>
+  <button onclick="login()">Entrar</button>
+</div>
+
+<!-- CREAR -->
+<div id="create" class="section">
+  <h1>Crear Meme 😂</h1>
+
+  <input type="text" id="inputTop" placeholder="Texto arriba">
+  <input type="text" id="inputBottom" placeholder="Texto abajo"><br>
+
+  <input type="file" id="uploadImage"><br>
+
+  <button onclick="updateMeme()">Generar</button>
+  <button onclick="downloadMeme()">Exportar</button>
+  <button onclick="saveMeme()">Guardar</button>
+
+  <div class="meme-container" id="meme">
+    <img id="memeImage">
+    <div id="topText" class="text"></div>
+    <div id="bottomText" class="text"></div>
+  </div>
+</div>
+
+<!-- GALERÍA -->
+<div id="gallery" class="section">
+  <h1>Mis creaciones 🎨</h1>
+  <div id="savedMemes"></div>
+</div>
+
+<script>
+
+// CONTROL VISIBILIDAD UI
+function hideUIForLogin() {
+  document.getElementById("menuBtn").style.display = "none";
+  document.getElementById("arrow").style.display = "none";
+}
+
+function showUI() {
+  document.getElementById("menuBtn").style.display = "block";
+  document.getElementById("arrow").style.display = "block";
+}
+
+// MENU
+function toggleMenu() {
+  sidebar.classList.toggle("active");
+  overlay.classList.toggle("active");
+
+  if (sidebar.classList.contains("active")) {
+    arrow.style.left = "250px";
+    arrow.innerHTML = "⬅";
+  } else {
+    arrow.style.left = "10px";
+    arrow.innerHTML = "➡";
+  }
+}
+
+function closeMenu() {
+  sidebar.classList.remove("active");
+  overlay.classList.remove("active");
+  arrow.style.left = "10px";
+  arrow.innerHTML = "➡";
+}
+
+// LOGIN
+function login() {
+  const user = username.value;
+  if (!user) return alert("Escribe un nombre");
+
+  localStorage.setItem("user", user);
+  initApp();
+}
+
+function logout() {
+  localStorage.clear();
+  location.reload();
+}
+
+// SECCIONES
+function showSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  if (id === "gallery") loadGallery();
+
+  closeMenu();
+}
+
+// MEME
+function updateMeme() {
+  topText.innerText = inputTop.value;
+  bottomText.innerText = inputBottom.value;
+}
+
+// SUBIR IMAGEN
+uploadImage.onchange = e => {
+  const reader = new FileReader();
+  reader.onload = ev => memeImage.src = ev.target.result;
+  reader.readAsDataURL(e.target.files[0]);
+};
+
+// EXPORTAR
+function downloadMeme() {
+  html2canvas(meme).then(canvas => {
+    const link = document.createElement("a");
+    link.download = "meme.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+}
+
+// GUARDAR
+function saveMeme() {
+  if (!memeImage.src) return alert("Sube una imagen");
+
+  let memes = JSON.parse(localStorage.getItem("memes")) || [];
+
+  memes.push({
+    img: memeImage.src,
+    top: inputTop.value,
+    bottom: inputBottom.value
+  });
+
+  localStorage.setItem("memes", JSON.stringify(memes));
+  alert("Guardado 👍");
+}
+
+// GALERÍA
+function loadGallery() {
+  savedMemes.innerHTML = "";
+
+  let memes = JSON.parse(localStorage.getItem("memes")) || [];
+
+  if (!memes.length) {
+    savedMemes.innerHTML = "<p>No tienes memes aún</p>";
+    return;
+  }
+
+  memes.forEach(m => {
+    savedMemes.innerHTML += `
+      <img src="${m.img}" width="200"><br>
+      <b>${m.top}</b><br>
+      <b>${m.bottom}</b><hr>
+    `;
+  });
+}
+
+// INIT
+function initApp() {
+  if (localStorage.getItem("user")) {
+    showUI();
+    showSection("create");
+  } else {
+    hideUIForLogin();
+    showSection("login");
+  }
+}
+
+initApp();
+
+</script>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+</body>
+</html>
